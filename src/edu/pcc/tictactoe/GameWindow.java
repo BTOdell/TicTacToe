@@ -15,39 +15,59 @@ import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 
-public class GameWindow extends JFrame {
+import edu.pcc.tictactoe.Game.GameListener;
+import edu.pcc.tictactoe.ICell.CellChangeListener;
+
+public class GameWindow extends JFrame implements GameListener {
 
 	private static final long serialVersionUID = 1L;
 	
 	private final TicTacToe game;
-	private final ICell[][] cells;
+	private final HumanPlayer human;
+	private final CellLabel[][] cellLabels;
 	
 	private JPanel contentPane;
-	
-	private boolean turnX = true;
 	
 	private final MouseListener cellMouseListener = new MouseListener() {
 		public void mouseClicked(MouseEvent e) {
 			
 		}
 		public void mouseEntered(MouseEvent e) {
-			final CellLabel cell = getCell(e);
-			if (cell != null) {
-				cell.hover(true);
+			if (human == null || !game.hasFocus(human)) {
+				return;
+			}
+			final CellLabel cellLabel = getCell(e);
+			if (cellLabel != null) {
+				final ICell cell = cellLabel.getCell();
+				if (cell.getToken() == null) {
+					cellLabel.hover(true);					
+				}
 			}
 		}
 		public void mouseExited(MouseEvent e) {
-			final CellLabel cell = getCell(e);
-			if (cell != null) {
-				cell.hover(false);
+			if (human == null || !game.hasFocus(human)) {
+				return;
+			}
+			final CellLabel cellLabel = getCell(e);
+			if (cellLabel != null) {
+				final ICell cell = cellLabel.getCell();
+				if (cell.getToken() == null) {					
+					cellLabel.hover(false);
+				}
 			}
 		}
 		public void mousePressed(MouseEvent e) {
-			final CellLabel cell = getCell(e);
-			if (cell != null) {
+			if (human == null || !game.hasFocus(human)) {
+				return;
+			}
+			final CellLabel cellLabel = getCell(e);
+			if (cellLabel != null) {
+				final ICell cell = cellLabel.getCell();
 				if (cell.getToken() == null) {
-					//cell.setToken(turnX ? Token.X : Token.O);
-					turnX = !turnX;
+					if (game.move(human, cell)) {
+						game.turn();
+						cellLabel.hover(false);
+					}
 				}
 			}
 		}
@@ -63,9 +83,10 @@ public class GameWindow extends JFrame {
 		}
 	};
 	
-	public GameWindow(final TicTacToe game) {
+	public GameWindow(final TicTacToe game, final HumanPlayer human) {
 		this.game = game;
-		this.cells = new ICell[game.getDimension()][game.getDimension()];
+		this.human = human;
+		this.cellLabels = new CellLabel[game.getDimension()][game.getDimension()];
 		
 		init();
 	}
@@ -90,26 +111,42 @@ public class GameWindow extends JFrame {
 	}
 	
 	private void initCells() {
-		final ICell[][] internalCells = game.getCells();
+		final ICell[][] cells = game.getCells();
 		final int dim = game.getDimension();
 		for (int i = 0; i < dim; i++) {
 			for (int j = 0; j < dim; j++) {
-				final CellLabel cellLabel = new CellLabel(internalCells[i][j]);
+				final ICell cell = cells[i][j];
+				final CellLabel cellLabel = new CellLabel(cell);
 				cellLabel.addMouseListener(cellMouseListener);
-				cells[i][j] = cellLabel;
+				cell.addListener(new CellChangeListener() {
+					public void onChanged(ICell cell) {
+						cellLabel.setTokenText(cell.getToken());
+						cellLabel.defaultColor();
+					}
+				});
+				cellLabels[i][j] = cellLabel;
 				contentPane.add(cellLabel);
 			}
 		}
 	}
 	
-	private static class CellLabel extends JLabel implements ICell {
+	@Override
+	public void onGameOver(Player winner, ICell[] winCells) {
+		if (winCells != null) {
+			for (ICell cell : winCells) {
+				cellLabels[cell.getX()][cell.getY()].setBackground(Color.GREEN);
+			}
+		}
+	}
+	
+	private static class CellLabel extends JLabel {
 		
 		private static final long serialVersionUID = 1L;
 		
 		private static final Border BORDER = new MatteBorder(1, 1, 1, 1, Color.BLACK);
 		private static final Font FONT = new Font("Trebuchet MS", Font.BOLD, 144);
 		private static final Color DEFAULT_COLOR = Color.WHITE;
-		private static final Color HOVER_COLOR = new Color(250, 250, 250);
+		private static final Color HOVER_COLOR = new Color(240, 240, 240);
 		
 		private final ICell cell;
 		
@@ -121,14 +158,21 @@ public class GameWindow extends JFrame {
 			setFont(FONT);
 			setHorizontalAlignment(SwingConstants.CENTER);
 		}
-
-		@Override
-		public Token getToken() {
-			return cell.getToken();
+		
+		private ICell getCell() {
+			return cell;
+		}
+		
+		private void setTokenText(Token token) {
+			setText(token != null ? token.toString() : null);
 		}
 		
 		private void hover(boolean hovered) {
 			setBackground(hovered ? HOVER_COLOR : DEFAULT_COLOR);
+		}
+		
+		private void defaultColor() {
+			setBackground(DEFAULT_COLOR);
 		}
 		
 	}

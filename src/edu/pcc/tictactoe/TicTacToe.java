@@ -8,30 +8,24 @@ public class TicTacToe extends Game {
 	
 	private GameWindow gui = null;
 	
+	private final HumanPlayer humanPlayer;
+	
 	public TicTacToe() {
-		
-	}
-	
-	public final void init() throws Exception {
-		getGUI().setVisible(true);
-	}
-	
-	@Override
-	public boolean mark(Player player, int x, int y) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
-	@Override
-	public boolean hasFocus(Player player) {
-		// TODO Auto-generated method stub
-		return false;
+		super(3);
+		this.humanPlayer = new HumanPlayer();
 	}
 
 	@Override
 	public void start() {
-		// TODO Auto-generated method stub
+		register(new AIPlayer(this, 500));
+		register(new AIPlayer(this, 500));
+		//register(humanPlayer);
 		
+		gui = getGUI();
+		addListener(gui);
+		gui.setVisible(true);
+		
+		super.start();
 	}
 	
 	// internal methods
@@ -46,7 +40,7 @@ public class TicTacToe extends Game {
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
-						gui = new GameWindow(TicTacToe.this);
+						gui = new GameWindow(TicTacToe.this, humanPlayer);
 					}
 				});
 			} catch (Exception e) {
