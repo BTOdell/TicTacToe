@@ -9,6 +9,7 @@ import java.awt.event.MouseListener;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
@@ -23,7 +24,7 @@ public class GameWindow extends JFrame implements GameListener {
 	private static final long serialVersionUID = 1L;
 	
 	private final TicTacToe game;
-	private final HumanPlayer human;
+	private final HumanPlayer humanPlayer;
 	private final CellLabel[][] cellLabels;
 	
 	private JPanel contentPane;
@@ -33,7 +34,7 @@ public class GameWindow extends JFrame implements GameListener {
 			
 		}
 		public void mouseEntered(MouseEvent e) {
-			if (human == null || !game.hasFocus(human)) {
+			if (humanPlayer == null || !game.hasFocus(humanPlayer)) {
 				return;
 			}
 			final CellLabel cellLabel = getCell(e);
@@ -45,7 +46,7 @@ public class GameWindow extends JFrame implements GameListener {
 			}
 		}
 		public void mouseExited(MouseEvent e) {
-			if (human == null || !game.hasFocus(human)) {
+			if (humanPlayer == null || !game.hasFocus(humanPlayer)) {
 				return;
 			}
 			final CellLabel cellLabel = getCell(e);
@@ -57,14 +58,14 @@ public class GameWindow extends JFrame implements GameListener {
 			}
 		}
 		public void mousePressed(MouseEvent e) {
-			if (human == null || !game.hasFocus(human)) {
+			if (humanPlayer == null || !game.hasFocus(humanPlayer)) {
 				return;
 			}
 			final CellLabel cellLabel = getCell(e);
 			if (cellLabel != null) {
 				final ICell cell = cellLabel.getCell();
 				if (cell.getToken() == null) {
-					if (game.move(human, cell)) {
+					if (game.move(humanPlayer, cell)) {
 						game.turn();
 						cellLabel.hover(false);
 					}
@@ -85,7 +86,7 @@ public class GameWindow extends JFrame implements GameListener {
 	
 	public GameWindow(final TicTacToe game, final HumanPlayer human) {
 		this.game = game;
-		this.human = human;
+		this.humanPlayer = human;
 		this.cellLabels = new CellLabel[game.getDimension()][game.getDimension()];
 		
 		init();
@@ -119,7 +120,7 @@ public class GameWindow extends JFrame implements GameListener {
 				final CellLabel cellLabel = new CellLabel(cell);
 				cellLabel.addMouseListener(cellMouseListener);
 				cell.addListener(new CellChangeListener() {
-					public void onChanged(ICell cell) {
+					public void onChanged(final ICell cell) {
 						cellLabel.setTokenText(cell.getToken());
 						cellLabel.defaultColor();
 					}
@@ -132,17 +133,66 @@ public class GameWindow extends JFrame implements GameListener {
 	
 	@Override
 	public void onGameOver(Player winner, ICell[] winCells) {
-		if (winCells != null) {
-			for (ICell cell : winCells) {
-				cellLabels[cell.getX()][cell.getY()].setBackground(Color.GREEN);
-			}
-		} else { // cats game
-			for (int i = 0; i < cellLabels.length; i++) {
-				for (int j = 0; j < cellLabels[0].length; j++) {					
-					cellLabels[i][j].setBackground(Color.YELLOW);
+		exit: {
+			if (winCells != null) {
+				boolean humanWon = humanPlayer == null && winner == humanPlayer;
+				for (ICell cell : winCells) {
+					cellLabels[cell.getX()][cell.getY()].setBackground(humanWon ? Color.GREEN : Color.RED);
+				}
+				if (humanPlayer != null) {
+					if (!gameOverMessage((humanWon ? "You won!" : "The computer won :(") + " Try again?", humanWon ? JOptionPane.PLAIN_MESSAGE : JOptionPane.ERROR_MESSAGE)) {
+						break exit;
+					}
+				} else {
+					Token token = game.getToken(winner);
+					if (!gameOverMessage(token + " won! Try again?", JOptionPane.INFORMATION_MESSAGE)) {
+						break exit;
+					}
+				}
+			} else { // cats game
+				for (int i = 0; i < cellLabels.length; i++) {
+					for (int j = 0; j < cellLabels[0].length; j++) {					
+						cellLabels[i][j].setBackground(Color.YELLOW);
+					}
+				}
+				if (!gameOverMessage("Cat's game! Try again?", JOptionPane.WARNING_MESSAGE)) {
+					break exit;
 				}
 			}
+			game.clear();
+			game.start();
+			return;
 		}
+		dispose();
+	}
+	
+	private boolean gameOverMessage(String message, int messageType) {
+		return gameMessage("Game over", message, messageType);
+	}
+	
+	public boolean gameMessage(String title, String message, int messageType) {
+		game.unregister();
+		final int option = JOptionPane.showOptionDialog(GameWindow.this, message, title, JOptionPane.YES_NO_OPTION, messageType, null, new Object[] { "First", "Second", "AI vs AI", "Exit" }, "First");
+		switch (option) {
+			case JOptionPane.CLOSED_OPTION:
+			case 3: // exit
+				return false;
+			case 0:
+				// switch to first player
+				game.register(game.getHumanPlayer());
+				game.register(game.getAIPlayer1());
+				break;
+			case 1:
+				// switch to second player
+				game.register(game.getAIPlayer1());
+				game.register(game.getHumanPlayer());
+				break;
+			case 2: // ai vs ai
+				game.register(game.getAIPlayer1());
+				game.register(game.getAIPlayer2());
+				break;
+		}
+		return true;
 	}
 	
 	private static class CellLabel extends JLabel {

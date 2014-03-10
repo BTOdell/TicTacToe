@@ -52,6 +52,7 @@ public class AIPlayer implements Player {
 					
 				}
 			}
+			System.out.println("AIPlayer thread shutdown.");
 		}
 	};
 	private volatile boolean running = false, turn = false;

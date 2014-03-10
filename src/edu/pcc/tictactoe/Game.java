@@ -36,6 +36,8 @@ public abstract class Game {
 	}
 	
 	public boolean register(Player player) {
+		if (player == null)
+			return false;
 		if (xPlayer == null) {
 			xPlayer = player;
 			currentPlayer = player;
@@ -47,6 +49,20 @@ public abstract class Game {
 		addListener(player);
 		return true;
 	}
+	
+	public void unregister() {
+		if (xPlayer != null) {
+			removeListener(xPlayer);
+			xPlayer = null;
+		}
+		if (oPlayer != null) {
+			removeListener(oPlayer);
+			oPlayer = null;
+		}
+		currentPlayer = null;
+	}
+	
+	public abstract boolean init();
 	
 	public void start() {
 		
@@ -79,12 +95,12 @@ public abstract class Game {
 		return move(player, cell.getX(), cell.getY());
 	}
 	
-	public boolean move(Player player, int x, int y) {
+	public boolean move(final Player player, int x, int y) {
 		if (hasFocus(player)) {
 			final Cell cell = cells[x][y];
 			cell.setToken(getToken(player));
 			moves++;
-			ICell[] winCells = win(cell, cells);
+			final ICell[] winCells = win(cell, cells);
 			if (winCells != null) {
 				// player won!
 				System.out.println("YOU WON!");
@@ -182,9 +198,19 @@ public abstract class Game {
 		listeners.add(listener);
 	}
 	
-	private void fireGameOver(Player winner, ICell[] winCells) {
-		for (GameListener listener : listeners) {
-			listener.onGameOver(winner, winCells);
+	public void removeListener(GameListener listener) {
+		if (listeners != null) {
+			listeners.remove(listener);
+		}
+	}
+	
+	private void fireGameOver(final Player winner, final ICell[] winCells) {
+		for (final GameListener listener : listeners) {
+			new Thread(new Runnable() {
+				public void run() {
+					listener.onGameOver(winner, winCells);
+				}
+			}).start();
 		}
 	}
 	
