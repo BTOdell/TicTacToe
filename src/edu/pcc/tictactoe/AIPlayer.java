@@ -63,20 +63,91 @@ public class AIPlayer implements Player {
 	}
 	
 	private ICell process() {
-		LinkedList<ICell> cellList = new LinkedList<ICell>();
-		ICell[][] cells = game.getCells();
+		Token myToken = game.getToken(this);
+		AICell[][] currentCells = convert(game.getCells());
+		LinkedList<AICell> moves = new LinkedList<AICell>();
+		int moveCount = possibleMoves(currentCells, moves);
+		ICell bestMove = null;
+		switch (moveCount) {
+			case 1:
+				bestMove = moves.getFirst();
+				break;
+			default:
+				LinkedList<AICell> bestMoves = new LinkedList<AICell>();
+				Integer bestResult = null;
+				outer:
+				for (int i = 0; i < moveCount; i++) {
+					final AICell move = moves.pollLast();
+					int result = calculate(myToken, myToken, move, moves, currentCells);
+					best: {
+						if (bestResult == null) {
+							break best;
+						}
+						if (result > bestResult) {
+							bestMoves.clear();
+						} else if (result < bestResult) {
+							continue outer;
+						}
+					}
+					bestMoves.add(move);
+					bestResult = result;
+				}
+				bestMove = bestMoves.get(new Random().nextInt(bestMoves.size()));
+			case 0:
+		}
+		return bestMove;
+	}
+	
+	private AICell[][] convert(ICell[][] cells) {
+		final AICell[][] aiCells = new AICell[cells.length][cells.length > 0 ? cells[0].length : 0];
 		for (int i = 0; i < cells.length; i++) {
 			for (int j = 0; j < cells[0].length; j++) {
-				ICell cell = cells[i][j];
+				aiCells[i][j] = new AICell(i, j, cells[i][j].getToken());
+			}
+		}
+		return aiCells;
+	}
+	
+	private int calculate(Token myToken, Token currToken, AICell move, LinkedList<AICell> moves, AICell[][] cells) {
+		try {
+			move.token = currToken;
+			ICell[] winCells = Game.win(move, cells);
+			if (winCells != null) {
+				return 1;
+			} else {
+				int moveCount = possibleMoves(cells, moves);
+				if (moveCount == 0) {
+					return 0;
+				} else {
+					Integer bestResult = null;
+					final Token nextToken = currToken == Token.X ? Token.O : Token.X;
+					for (int i = 0; i < moveCount; i++) {
+						final AICell nextMove = moves.pollLast();
+						int result = calculate(myToken, nextToken, nextMove, moves, cells);
+						if (bestResult == null || result > bestResult) {
+							bestResult = result;
+						}
+					}
+					return -bestResult;
+				}
+			}
+		} finally {
+			move.token = null;
+		}
+	}
+	
+	private int possibleMoves(AICell[][] cells, LinkedList<AICell> moves) {
+		int count = 0;
+		for (int i = 0; i < cells.length; i++) {
+			for (int j = 0; j < cells[0].length; j++) {
+				final AICell cell = cells[i][j];
 				if (cell.getToken() == null) {
-					cellList.add(cell);
+					moves.addLast(cell);
+					count++;
 				}
 			}
 		}
-		if (cellList.size() > 0) {
-			return cellList.get(new Random().nextInt(cellList.size()));
-		}
-		return null;
+		return count;
 	}
 	
 	@Override
@@ -111,6 +182,42 @@ public class AIPlayer implements Player {
 		synchronized (waitObj) {
 			waitObj.notify();
 		}
+	}
+	
+	private class AICell implements ICell {
+		
+		public final int x, y;
+		public Token token;
+		
+		public AICell(final int x, final int y, final Token token) {
+			this.x = x;
+			this.y = y;
+			this.token = token;
+		}
+		
+		@Override
+		public int getX() {
+			return x;
+		}
+
+		@Override
+		public int getY() {
+			return y;
+		}
+
+		@Override
+		public Token getToken() {
+			return token;
+		}
+
+		@Override
+		public void addListener(CellChangeListener listener) {}
+		
+		@Override
+		public String toString() {
+			return "(" + x + ", " + y + ")";
+		}
+		
 	}
 	
 }

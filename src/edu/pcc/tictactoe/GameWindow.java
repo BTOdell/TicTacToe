@@ -136,6 +136,12 @@ public class GameWindow extends JFrame implements GameListener {
 			for (ICell cell : winCells) {
 				cellLabels[cell.getX()][cell.getY()].setBackground(Color.GREEN);
 			}
+		} else { // cats game
+			for (int i = 0; i < cellLabels.length; i++) {
+				for (int j = 0; j < cellLabels[0].length; j++) {					
+					cellLabels[i][j].setBackground(Color.YELLOW);
+				}
+			}
 		}
 	}
 	
@@ -157,6 +163,7 @@ public class GameWindow extends JFrame implements GameListener {
 			setBorder(BORDER);
 			setFont(FONT);
 			setHorizontalAlignment(SwingConstants.CENTER);
+			setTokenText(cell.getToken());
 		}
 		
 		private ICell getCell() {

@@ -49,6 +49,17 @@ public abstract class Game {
 	}
 	
 	public void start() {
+		
+		//cells[0][1].setToken(Token.X);
+		//cells[2][1].setToken(Token.O);
+		//cells[0][0].setToken(Token.X);
+		//cells[0][1].setToken(Token.X);
+		//cells[1][1].setToken(Token.O);
+		//cells[1][2].setToken(Token.O);
+		//cells[2][2].setToken(Token.X);
+		//cells[2][0].setToken(Token.O);
+		//moves = 2;
+		
 		if (xPlayer != null) {
 			xPlayer.prepare();
 		}
@@ -60,6 +71,10 @@ public abstract class Game {
 		}
 	}
 	
+	public Token getToken(Player player) {
+		return player == xPlayer ? Token.X : player == oPlayer ? Token.O : null;
+	}
+	
 	public boolean move(Player player, ICell cell) {
 		return move(player, cell.getX(), cell.getY());
 	}
@@ -67,9 +82,9 @@ public abstract class Game {
 	public boolean move(Player player, int x, int y) {
 		if (hasFocus(player)) {
 			final Cell cell = cells[x][y];
-			cell.setToken(player == xPlayer ? Token.X : Token.O);
+			cell.setToken(getToken(player));
 			moves++;
-			ICell[] winCells = win(cell);
+			ICell[] winCells = win(cell, cells);
 			if (winCells != null) {
 				// player won!
 				System.out.println("YOU WON!");
@@ -87,13 +102,13 @@ public abstract class Game {
 		return false;
 	}
 	
-	public ICell[] win(ICell cell) {
+	public static ICell[] win(ICell cell, ICell[][] cells) {
 		final Token targetToken = cell.getToken();
-		final ICell[] output = new ICell[dimension];
+		final ICell[] output = new ICell[cells.length];
 		columns: {
-			for (int i = 0; i < dimension; i++) {
-				final Cell c = cells[cell.getX()][i];
-				if (c.token != targetToken) {
+			for (int i = 0; i < cells.length; i++) {
+				final ICell c = cells[cell.getX()][i];
+				if (c.getToken() != targetToken) {
 					break columns;
 				}
 				output[i] = c;
@@ -101,9 +116,9 @@ public abstract class Game {
 			return output;
 		}
 		rows: {
-			for (int i = 0; i < dimension; i++) {
-				final Cell c = cells[i][cell.getY()];
-				if (c.token != targetToken) {
+			for (int i = 0; i < cells.length; i++) {
+				final ICell c = cells[i][cell.getY()];
+				if (c.getToken() != targetToken) {
 					break rows;
 				}
 				output[i] = c;
@@ -112,9 +127,9 @@ public abstract class Game {
 		}
 		if (cell.getX() == cell.getY()) {
 			diagonal: {
-				for (int i = 0; i < dimension; i++) {
-					final Cell c = cells[i][i];
-					if (c.token != targetToken) {
+				for (int i = 0; i < cells.length; i++) {
+					final ICell c = cells[i][i];
+					if (c.getToken() != targetToken) {
 						break diagonal;
 					}
 					output[i] = c;
@@ -122,12 +137,12 @@ public abstract class Game {
 				return output;
 			}
 		}
-		final int lessDim = dimension - 1; // equals 2 for a 3x3
+		final int lessDim = cells.length - 1; // equals 2 for a 3x3
 		if (cell.getX() + cell.getY() == lessDim) {
 			antiDiagonal: {
-				for (int i = 0; i < dimension; i++) {
-					final Cell c = cells[i][lessDim - i];
-					if (c.token != targetToken) {
+				for (int i = 0; i < cells.length; i++) {
+					final ICell c = cells[i][lessDim - i];
+					if (c.getToken() != targetToken) {
 						break antiDiagonal;
 					}
 					output[i] = c;

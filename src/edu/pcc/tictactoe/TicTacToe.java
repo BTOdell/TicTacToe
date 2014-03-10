@@ -17,9 +17,9 @@ public class TicTacToe extends Game {
 
 	@Override
 	public void start() {
-		register(new AIPlayer(this, 500));
-		register(new AIPlayer(this, 500));
-		//register(humanPlayer);
+		register(humanPlayer);
+		register(new AIPlayer(this, 1000));
+		//register(new AIPlayer(this, 1000));
 		
 		gui = getGUI();
 		addListener(gui);
